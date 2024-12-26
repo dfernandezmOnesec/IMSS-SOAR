@@ -10,13 +10,10 @@ Este Playbook de Logic Apps para Sentinel permite agregar direcciones IP de orig
 
 ## Botones de Despliegue
 
-### Nuevo Template V2 (Mejoras: Manejo de múltiples IPs y duplicados)
+### Template
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Network-Security%2Fmaster%2FAzure%2520WAF%2FPlaybook%2520-%2520WAF%2520Sentinel%2520Playbook%2520Block%2520IP%2520-%2520New%2FtemplateV2.json)
 
-### Template V1 (Versión anterior)
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Network-Security%2Fmaster%2FAzure%2520WAF%2FPlaybook%2520-%2520WAF%2520Sentinel%2520Playbook%2520Block%2520IP%2520-%2520New%2Ftemplate.json)
 
-Este nuevo Playbook es compatible con políticas WAF de Front Door Standard/Premium y App Gateway.
 
 ---
 
@@ -45,21 +42,6 @@ Este nuevo Playbook es compatible con políticas WAF de Front Door Standard/Prem
 4. La regla de automatización ejecuta el Playbook configurado.
 5. El Playbook crea una regla personalizada llamada `SentinelBlockIP` en la política WAF, bloqueando la IP de origen del atacante.
 6. Los intentos futuros desde esta IP serán bloqueados por el WAF.
-
----
-
-## Documentación Detallada
-
-Para obtener instrucciones detalladas paso a paso sobre cómo implementar este Playbook, visita nuestra publicación en el blog de la comunidad técnica:  
-[Automated Detection and Response for Azure WAF with Sentinel](https://techcommunity.microsoft.com/t5/azure-network-security-blog/automated-detection-and-response-for-azure-waf-with-sentinel/ba-p/3692525).
-
----
-
-## Contribuciones
-
-Este proyecto acepta contribuciones y sugerencias. Para más detalles, consulta nuestro [Código de Conducta](https://opensource.microsoft.com/codeofconduct/) y la [Licencia de Contribuciones de Microsoft](https://cla.opensource.microsoft.com).
-
-Si tienes preguntas o comentarios adicionales, contacta con [opencode@microsoft.com](mailto:opencode@microsoft.com).
 
 ---
 
