@@ -36,9 +36,6 @@ Si ya existe una regla de grupo de seguridad de red, las direcciones IP de orige
 ## Después del despliegue
 
 - Otorgue a la identidad administrada de Logic App acceso al rol RBAC de *Network Contributor* de red en el NSG que modificará
-
-[![RolNSG_1](./Images/Add-IP-Entity-To-NSG_RolNSG_1.png)] 
-
 - Escoja la identidad administrada asignada a la Logic App y cree el rol dando click en "Create"
 
 
