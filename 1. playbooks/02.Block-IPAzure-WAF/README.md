@@ -46,12 +46,6 @@ Este nuevo Playbook es compatible con políticas WAF de Front Door Standard/Prem
 5. El Playbook crea una regla personalizada llamada `SentinelBlockIP` en la política WAF, bloqueando la IP de origen del atacante.
 6. Los intentos futuros desde esta IP serán bloqueados por el WAF.
 
----
-
-## Documentación Detallada
-
-Para obtener instrucciones detalladas paso a paso sobre cómo implementar este Playbook, visita nuestra publicación en el blog de la comunidad técnica:  
-[Automated Detection and Response for Azure WAF with Sentinel](https://techcommunity.microsoft.com/t5/azure-network-security-blog/automated-detection-and-response-for-azure-waf-with-sentinel/ba-p/3692525).
 
 ---
 
