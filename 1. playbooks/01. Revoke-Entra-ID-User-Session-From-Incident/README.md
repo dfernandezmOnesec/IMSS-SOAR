@@ -2,7 +2,7 @@
 
 En caso de presentar alguna duda, por favor, ponerse en contacto con dfernandezm@onesec.mx
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2FAzure-Sentinel%2Fmaster%2FPlaybooks%2FAS-Revoke-Azure-AD-User-Session-From-Incident%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2raw.githubusercontent.com/Secure-Nextgen-Systems/IMSS-SOAR/refs/heads/main/1.%20playbooks/01.%20Revoke-Entra-ID-User-Session-From-Incident/azuredeploy.json?token=GHSAT0AAAAAAC3FJJR34ZB4ZZ4ILD3EQNFIZ3N6FUQ)
 
 Este playbook está diseñado para ejecutarse desde un incidente de Microsoft Sentinel. Buscará los usuarios de Azure AD asociados con las entidades de la cuenta del incidente y revocará sus sesiones. Se agregará al Incidente un comentario indicando los usuarios afectados.
 
