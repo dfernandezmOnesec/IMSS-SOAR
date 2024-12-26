@@ -72,18 +72,6 @@ Los recursos incluidos en este repositorio están diseñados para mejorar la seg
 
 ## **Cómo Crear y Exportar una Plantilla ARM**
 
-### **Opción 1: Generador de Plantillas ARM**
-1. Descarga la herramienta desde el siguiente enlace:
-
-   [![Download](./src/Download.png)](https://aka.ms/Playbook-ARM-Template-Generator)
-
-2. Ejecuta el script de PowerShell:
-   ```powershell
-   Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass```
-3. Selecciona la suscripción, los flujos de trabajo y guarda la plantilla exportada.
-
-### **Opción 2: Manual**
-
 1. Desde Azure, exporta la plantilla del flujo de trabajo deseado.
 2. Modifica los parámetros básicos como nombre del playbook y credenciales.
 3. Agrega las variables y conexiones necesarias siguiendo esta estructura:
