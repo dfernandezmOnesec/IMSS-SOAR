@@ -36,13 +36,7 @@ Si ya existe una regla de grupo de seguridad de red, las direcciones IP de orige
 ## Después del despliegue
 
 - Otorgue a la identidad administrada de Logic App acceso al rol RBAC de *Network Contributor* de red en el NSG que modificará
-
-[![RolNSG_1](./Images/Add-IP-Entity-To-NSG_RolNSG_1.png)] 
-
-- Escoja la identidad administrada asignada a la Logic App y cree el rol dando click en "Create"
-
-
-[![RolNSG_1](./Images/Add-IP-Entity-To-NSG_RolNSG_2.png)] 
+- Escoja la identidad administrada asignada a la Logic App y cree el rol dando click en "Create" 
 
 - Otorgue a la aplicación lógica la identidad administrada *Microsoft Sentinel Responder*  en el grupo de recursos con  Microsoft Sentinel, esto permite que la aplicación lógica informe mensajes de estado al incidente y siga los pasos anteriores.
 [![RGIAM_1](./Images/Add-IP-Entity-To-NSG_RGIAM_1.png)] 
