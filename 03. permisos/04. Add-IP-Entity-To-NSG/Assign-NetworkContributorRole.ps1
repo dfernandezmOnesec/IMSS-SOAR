@@ -1,5 +1,6 @@
 # Iniciar sesion en Azure
-Connect-AzAccount
+Connect-AzAccount -UseDeviceAuthentication
+
 
 # Configurar las variables necesarias
 $resourceGroupNames = @("ResourceGroup1", "ResourceGroup2", "ResourceGroup3")  # Nombres de los grupos de recursos

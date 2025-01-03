@@ -13,7 +13,8 @@ Este script de PowerShell permite asignar el rol **Network Contributor** a una *
 
 -Autenticación en Azure: Debes iniciar sesión en Azure con el siguiente comando:
 ```powershell
-Connect-AzAccount
+Connect-AzAccount -UseDeviceAuthentication
+
 ```
 
 ## **Uso del script**
