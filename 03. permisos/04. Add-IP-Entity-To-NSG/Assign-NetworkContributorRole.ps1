@@ -1,3 +1,6 @@
+# Iniciar sesion en Azure
+Connect-AzAccount
+
 # Configurar las variables necesarias
 $resourceGroupNames = @("ResourceGroup1", "ResourceGroup2", "ResourceGroup3")  # Nombres de los grupos de recursos
 $managedIdentityId = "<ManagedIdentityId>"  # ID de la identidad administrada
