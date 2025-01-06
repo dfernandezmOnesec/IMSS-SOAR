@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "workspace": {
+            "type": "String"
+        }
+    },
+    "resources": [
+        {
+            "id": "[concat(resourceId('Microsoft.OperationalInsights/workspaces/providers', parameters('workspace'), 'Microsoft.SecurityInsights'),'/alertRules/ce0b021a-7c44-475a-976f-7ee75b1b1854')]",
+            "name": "[concat(parameters('workspace'),'/Microsoft.SecurityInsights/ce0b021a-7c44-475a-976f-7ee75b1b1854')]",
+            "type": "Microsoft.OperationalInsights/workspaces/providers/alertRules",
+            "kind": "Scheduled",
+            "apiVersion": "2023-12-01-preview",
+            "properties": {
+                "displayName": "Prueba_Caso4_NSG",
+                "description": "",
+                "severity": "High",
+                "enabled": true,
+                "query": "AzureDiagnostics\r\n| where Category == \"NetworkSecurityGroupEvent\" \r\n   and clientIP_s == \"203.0.113.45\"\r\n   and OperationName == \"FakeOperation\"\r\n   and ResultDescription == \"Injected Event\"\r\n| extend ValidClientIP = iif(isnotempty(clientIP_s), clientIP_s, \"IP no encontrada\")\r\n| project TimeGenerated, ResourceId, ValidClientIP, OperationName, ResultDescription\r\n| extend AccountCustomEntity = ValidClientIP\r\n",
+                "queryFrequency": "PT5M",
+                "queryPeriod": "PT3H",
+                "triggerOperator": "GreaterThan",
+                "triggerThreshold": 0,
+                "suppressionDuration": "PT5H",
+                "suppressionEnabled": false,
+                "startTimeUtc": null,
+                "tactics": [
+                    "Impact"
+                ],
+                "techniques": [],
+                "subTechniques": [],
+                "alertRuleTemplateName": null,
+                "incidentConfiguration": {
+                    "createIncident": true,
+                    "groupingConfiguration": {
+                        "enabled": true,
+                        "reopenClosedIncident": false,
+                        "lookbackDuration": "PT5H",
+                        "matchingMethod": "AllEntities",
+                        "groupByEntities": [],
+                        "groupByAlertDetails": [],
+                        "groupByCustomDetails": []
+                    }
+                },
+                "eventGroupingSettings": {
+                    "aggregationKind": "SingleAlert"
+                },
+                "alertDetailsOverride": {
+                    "alertDynamicProperties": []
+                },
+                "customDetails": {},
+                "entityMappings": [
+                    {
+                        "entityType": "IP",
+                        "fieldMappings": [
+                            {
+                                "identifier": "Address",
+                                "columnName": "ValidClientIP"
+                            }
+                        ]
+                    }
+                ],
+                "sentinelEntitiesMappings": null,
+                "templateVersion": null
+            }
+        }
+    ]
+}
