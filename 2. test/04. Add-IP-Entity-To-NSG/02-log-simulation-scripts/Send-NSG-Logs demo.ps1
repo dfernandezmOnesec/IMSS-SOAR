@@ -1,6 +1,6 @@
 # Configuración
-$workspaceId = "<ID_del_Workspace>"  # ID del área de trabajo
-$sharedKey = "<Clave_Primaria>"  # Clave primaria
+$workspaceId = "e3e00569-dbdb-409a-a5d4-02fcfce1c967"  # ID del área de trabajo
+$sharedKey = "H2CVeQLkP/uBN7VLROVt1AoPuFM6tDqt/Bfycq14pS49V0BKuZUpQs0OPF9pQvr5Mv65FTBGMwTcGxWWBPoo7Q=="  # Clave primaria
 $logType = "AzureDiagnostics"  # Tipo de log
 
 # Crear el log en formato JSON
@@ -8,7 +8,7 @@ $jsonData = @"
 [{
     "TimeGenerated": "$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')",
     "Category": "NetworkSecurityGroupEvent",
-    "ResourceId": "/subscriptions/<ID_de_la_Suscripción>/resourcegroups/<Nombre_del_Grupo>/providers/microsoft.network/networksecuritygroups/<Nombre_del_NSG>",
+    "ResourceId": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/resourcegroups/sentinelimssdemo/providers/microsoft.network/networksecuritygroups/front-nsg",
     "clientIP_s": "203.0.113.45",
     "OperationName": "FakeOperation",
     "ResultDescription": "Injected Event"

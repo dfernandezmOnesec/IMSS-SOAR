@@ -1,48 +1,48 @@
-# Script para Pruebas de Logs en Azure Log Analytics
+# Enviar Logs a Log Analytics Workspace
 
 ## Descripción
 
-Este script en PowerShell envía logs simulados a un **Log Analytics Workspace** en Azure. Está diseñado para probar integraciones personalizadas y validar eventos, como aquellos relacionados con un **Network Security Group (NSG)** o cualquier otro recurso.
-
----
+Este script en PowerShell permite enviar logs personalizados al Log Analytics Workspace de Azure. Los datos se registran en una tabla basada en el tipo de log definido (`LogType`).
 
 ## Requisitos
 
-1. **Log Analytics Workspace** configurado:
-   - Necesitas el **Workspace ID** y la **Primary Key**.
-   - Estos valores se obtienen desde el portal de Azure, en la sección **Agent instructions** de tu Workspace.
-2. **PowerShell instalado**:
-   - Compatible con PowerShell 5.1 o superior.
-3. **Conexión a Internet** para enviar los logs.
-
----
+1. **Log Analytics Workspace configurado**:
+   - ID del Workspace.
+   - Clave primaria del Workspace.
+2. **Azure PowerShell** instalado.
+3. **Conexión a Internet** para enviar los datos al Workspace.
 
 ## Configuración
 
-### Paso 1: Obtener Credenciales
-1. Accede a tu **Log Analytics Workspace** en el portal de Azure.
-2. Copia:
-   - **Workspace ID**.
-   - **Primary Key**.
+1. Reemplaza los siguientes valores en el script:
+   - `<Your-Workspace-Id>`: El ID de tu Log Analytics Workspace.
+   - `<Your-Primary-Key>`: La clave primaria de tu Workspace.
+   - `<LogType>`: El tipo de log que deseas registrar (por ejemplo, `CustomLogs`).
+   - `<Your-Log-Message>`, `<Your-Category>`, `<Your-Client-IP>`, etc.: Detalles específicos del log que deseas enviar.
 
-### Paso 2: Configurar el Script
-1. Abre el archivo del script.
-2. Reemplaza las siguientes variables con tus valores:
-   - `$WorkspaceId`: ID del Workspace.
-   - `$SharedKey`: Clave primaria del Workspace.
-   - `$LogType`: Nombre del tipo de log (p. ej., `CustomLog`).
-   - Campos del cuerpo (`$Body`):
-     - `clientIP_s`: Una IP ficticia o real.
-     - `OperationName`: Nombre de la operación a simular.
-     - `ResourceGroup`: Grupo de recursos relacionado.
-     - `SubscriptionId`: ID de la suscripción de Azure.
-
----
+2. Guarda el script en un archivo `.ps1` (por ejemplo, `SendLogsTemplate.ps1`).
 
 ## Ejecución
 
-1. Guarda el script en un archivo `.ps1` (por ejemplo, `SendLogsToWorkspace.ps1`).
-2. Abre una terminal de PowerShell con los permisos necesarios.
-3. Ejecuta el script:
+1. Abre una terminal de PowerShell con permisos administrativos.
+2. Ejecuta el script:
    ```bash
-   ./SendLogsToWorkspace.ps1
+   ./SendLogsTemplate.ps1
+
+## Validación 
+1. Ve al Log Analytics Workspace y consulta el siguiente query:
+
+```kql
+search *
+| where TimeGenerated > ago(1h)
+| sort by TimeGenerated desc
+```
+
+## Solución de Problemas
+Problemas de conectividad:
+
+Usa ping para verificar el acceso al endpoint del Workspace:
+```bash
+ping <Workspace-ID>.ods.opinsights.azure.com
+```
+
