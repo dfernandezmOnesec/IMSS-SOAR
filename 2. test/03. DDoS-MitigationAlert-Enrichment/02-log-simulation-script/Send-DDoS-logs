@@ -1,0 +1,50 @@
+# Configuración
+$workspaceId = "<Tu-Workspace-ID>"  # ID del área de trabajo
+$sharedKey = "<Tu-Clave-Primaria>"  # Clave primaria
+$logType = "AzureDiagnostics"  # Tipo de log (modificar según necesidad)
+
+# Crear el log en formato JSON
+$jsonData = @"
+[{
+    "TimeGenerated": "$(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ')",  # Fecha en formato ISO 8601
+    "Category": "DDoSProtectionNotifications",  # Categoría del evento
+    "type_s": "MitigationStarted",  # Subtipo del evento
+    "ResourceId": "/subscriptions/<ID-de-la-Suscripcion>/resourcegroups/<Nombre-del-Grupo>/providers/microsoft.network/publicIPAddresses/<Nombre-del-Recurso>",  # ID del recurso
+    "SubscriptionId": "<ID-de-la-Suscripcion>",  # ID de la suscripción
+    "error_message_s": "No errors detected",  # Mensaje de error
+    "clientIP_s": "203.0.113.45"  # Dirección IP del cliente
+}]
+"@
+
+# Eliminar saltos de línea en caso de que existan
+$jsonData = $jsonData -replace "`r`n", ""
+
+# Generar la firma
+$date = [System.DateTime]::UtcNow.ToString("r")  # Fecha en formato RFC 1123
+$hmacSha256 = New-Object System.Security.Cryptography.HMACSHA256
+$hmacSha256.Key = [Convert]::FromBase64String($sharedKey)  # Establecer la clave correctamente
+
+# Crear el StringToSign
+$stringToSign = "POST`n" + $jsonData.Length + "`napplication/json`nx-ms-date:$date`n/api/logs"
+
+# Generar la firma
+$signature = [Convert]::ToBase64String($hmacSha256.ComputeHash([Text.Encoding]::UTF8.GetBytes($stringToSign)))
+$authorization = "SharedKey ${workspaceId}:${signature}"
+
+# Enviar el log
+try {
+    $response = Invoke-RestMethod -Uri ("https://" + $workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01") `
+        -Method Post -Headers @{
+            "Authorization" = $authorization
+            "Content-Type" = "application/json"
+            "Log-Type" = $logType
+            "x-ms-date" = $date
+        } -Body $jsonData
+
+    Write-Output "Log enviado con éxito. Respuesta:"
+    Write-Output $response
+} catch {
+    Write-Output "Error al enviar el log:"
+    Write-Output $_.Exception.Message
+    Write-Output $_.Exception.Response.Content
+}

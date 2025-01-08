@@ -1,0 +1,37 @@
+{
+    "SubscriptionId": "acd754da-298f-423b-b31e-4973af1e1173",
+    "AlertRuleName": "DDoS Mitigation Started - Potential Attack",
+    "SearchQuery": "AzureDiagnostics \n| where Category == \"DDoSProtectionNotifications\" \n| where type_s == \"MitigationStarted\"\n| project ResourceId, SubscriptionId, Message, publicIpAddress_s",
+    "SearchIntervalStartTimeUtc": "2025-01-08T21:00:00Z",
+    "SearchIntervalEndtimeUtc": "2025-01-08T23:00:00Z",
+    "AlertThresholdOperator": "Greater Than",
+    "AlertThresholdValue": 0,
+    "ResultCount": 1,
+    "SearchIntervalInSeconds": 7200,
+    "LinkToSearchResults": "https://portal.azure.com/#@f9160ef2.../resourceGroups/SentinelIMSSDemo",
+    "LinkToFilteredSearchResultsUI": "https://portal.azure.com/resourceGroups/SentinelIMSSDemo",
+    "LinkToFilteredSearchResultsAPI": "https://api.loganalytics.io/v1/SentinelIMSSDemo",
+    "Description": "DDoS mitigation alert for IP 51.8.33.142",
+    "Severity": "3",
+    "SearchResult": {
+        "tables": [
+            {
+                "name": "PrimaryResult",
+                "columns": [
+                    { "name": "ResourceId", "type": "string" },
+                    { "name": "SubscriptionId", "type": "string" },
+                    { "name": "Message", "type": "string" },
+                    { "name": "publicIpAddress_s", "type": "string" }
+                ],
+                "rows": [
+                    [
+                        "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/resourceGroups/SentinelIMSSDemo/providers/Microsoft.Network/publicIPAddresses/DemoIMSS",
+                        "acd754da-298f-423b-b31e-4973af1e1173",
+                        "[MITIGATION STARTED] Start DDoS mitigation for 51.8.33.142. Inbound SYN traffic exceeds DDoS protection threshold: 100000 SYN packets per second",
+                        "51.8.33.142"
+                    ]
+                ]
+            }
+        ]
+    }
+}
