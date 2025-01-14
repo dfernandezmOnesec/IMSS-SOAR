@@ -1,36 +1,134 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "workflows_Enrich_DDoSAlert2_name": {
-            "defaultValue": "Enrich-DDoSAlert2",
-            "type": "String"
+        "LogicAppName": {
+            "defaultValue": "Enrich-DDoSAlert",
+            "type": "string"
         },
-        "connections_office365_1_externalid": {
-            "defaultValue": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/resourceGroups/SentinelIMSSDemo/providers/Microsoft.Web/connections/office365-1",
-            "type": "String"
+        "alertName": {
+            "defaultValue": "DDoS Mitigation Started - Potential Attack",
+            "type": "string"
+        },
+        "securityTeamEmail": {
+            "type": "string",
+            "metadata": {
+                "Description": "This is the email address of the security team, which will be the recipient of the email alert along with the resource owner."
+            }
+        },
+        "companyDomain": {
+            "type": "string",
+            "metadata": {
+                "Description": "In the form of @company.com - this will be used to compose the email address of the resource owner."
+            }
+        },
+        "workspaceName": {
+            "type": "string",
+            "metadata": {
+                "Description": "Name of the existing Log Analytics workspace"
+            }
         }
     },
-    "variables": {},
+    "variables": {
+        "Office365ConnectionName": "[concat('office365-', parameters('LogicAppName'))]"
+    },
     "resources": [
+        {
+            "type": "Microsoft.Insights/actionGroups",
+            "apiVersion": "2018-03-01",
+            "name": "[parameters('LogicAppName')]",
+            "location": "Global",
+            "dependsOn": [
+                "[resourceId('Microsoft.Logic/workflows', parameters('LogicAppName'))]"
+            ],
+            "properties": {
+              "groupShortName": "DDoSLogicApp",
+              "enabled": true,
+              "smsReceivers": [],
+              "emailReceivers": [],
+              "webhookReceivers": [
+                {
+                  "name": "[concat(parameters('LogicAppName'), '-webhook')]",
+                  "serviceUri": "[listCallbackURL(concat(resourceId('Microsoft.Logic/workflows', parameters('LogicAppName')), '/triggers/manual'), '2016-06-01').value]"
+                }
+              ]
+            }
+          },
+        {
+            "name": "[parameters('alertName')]",
+            "type": "Microsoft.Insights/scheduledQueryRules",
+            "apiVersion": "2018-04-16",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Insights/actionGroups', parameters('LogicAppName'))]"
+            ],
+            "properties": {
+                "description": "This alert detects a MitigationStarted event logged by Azure DDoS Protection Standard.",
+                "enabled": "true",
+                "source": {
+                    "Query": "AzureDiagnostics | where Category == \"DDoSProtectionNotifications\" | where type_s == \"MitigationStarted\" | project ResourceId, SubscriptionId, Message, publicIpAddress_s",
+                    "dataSourceId": "[resourceId('Microsoft.OperationalInsights/workspaces',parameters('workspaceName'))]",
+                    "queryType": "ResultCount"
+                },
+                "schedule": {
+                    "frequencyInMinutes": 5,
+                    "timeWindowInMinutes": 5
+                },
+                "action":{
+                    "odata.type": "Microsoft.WindowsAzure.Management.Monitoring.Alerts.Models.Microsoft.AppInsights.Nexus.DataContracts.Resources.ScheduledQueryRules.AlertingAction",
+                    "severity": "2",
+                    "aznsAction": {
+                        "actionGroup": [
+                        "[resourceId('Microsoft.Insights/actiongroups', parameters('LogicAppName'))]"
+                    ]
+                },
+                    "trigger":{
+                        "thresholdOperator": "GreaterThan",
+                        "threshold": 0
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[variables('Office365ConnectionName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "displayName": "<username>@<domain>",
+                "customParameterValues": {},
+                "api": {
+                    "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/office365')]"
+                }
+            }
+        },
         {
             "type": "Microsoft.Logic/workflows",
             "apiVersion": "2017-07-01",
-            "name": "[parameters('workflows_Enrich_DDoSAlert2_name')]",
-            "location": "eastus",
+            "name": "[parameters('LogicAppName')]",
+            "location": "[resourceGroup().location]",
             "tags": {
                 "createddate": "11/03/2020",
                 "owner": "anroma"
             },
             "identity": {
+                "principalId": "",
+                "tenantId": "",
                 "type": "SystemAssigned"
             },
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/connections', variables('Office365ConnectionName'))]"
+            ],
             "properties": {
                 "state": "Enabled",
                 "definition": {
                     "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
                     "contentVersion": "1.0.0.0",
                     "parameters": {
+                        "$connections": {
+                            "defaultValue": {},
+                            "type": "Object"
+                        },
                         "companyDomain": {
                             "defaultValue": {},
                             "type": "String"
@@ -38,10 +136,6 @@
                         "securityTeamEmail": {
                             "defaultValue": {},
                             "type": "String"
-                        },
-                        "$connections": {
-                            "defaultValue": {},
-                            "type": "Object"
                         }
                     },
                     "triggers": {
@@ -368,6 +462,7 @@
                             "foreach": "@triggerBody()?['SearchResult']?['tables']",
                             "actions": {
                                 "Set_variable": {
+                                    "runAfter": {},
                                     "type": "SetVariable",
                                     "inputs": {
                                         "name": "Rows",
@@ -390,17 +485,17 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "uri": "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2019-04-01",
-                                "method": "POST",
+                                "authentication": {
+                                    "type": "ManagedServiceIdentity"
+                                },
                                 "body": {
                                     "query": "where toupper(id) == '@{first(skip(first(variables('Rows')), 0))}' | extend publicipaddress = properties.ipAddress | extend ipConfiguration = parse_json(properties.ipConfiguration.id) | extend BrkipConfig = split(ipConfiguration, '/') | extend typeassetassociatedwith = tostring(BrkipConfig[7]) | extend nameassetassociatedwith = tostring(BrkipConfig[8]) | extend owner = parse_json(tags.owner) | extend dnsname = parse_json(properties.dnsSettings.fqdn) | project id, name, publicipaddress,  dnsname, typeassetassociatedwith, nameassetassociatedwith, location, resourceGroup, managedBy, tags, owner",
                                     "subscriptions": [
-                                        "acd754da-298f-423b-b31e-4973af1e1173"
+                                        "@{first(skip(first(variables('Rows')), 1))}"
                                     ]
                                 },
-                                "authentication": {
-                                    "type": "ManagedServiceIdentity"
-                                }
+                                "method": "POST",
+                                "uri": "https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2019-04-01"
                             }
                         },
                         "HTTP_2": {
@@ -411,8 +506,8 @@
                             },
                             "type": "Http",
                             "inputs": {
-                                "uri": "http://@{first(skip(first(variables('Rows')), 3))}",
-                                "method": "GET"
+                                "method": "GET",
+                                "uri": "http://@{first(skip(first(variables('Rows')), 3))}"
                             }
                         },
                         "Initialize_variable": {
@@ -492,18 +587,42 @@
                             },
                             "type": "ApiConnection",
                             "inputs": {
+                                "body": {
+                                    "Body": "<p>An ongoing DDoS mitigation event has been detected against the following resource:<br>\n<br>\n<strong>Target Public IP:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 2))}<br>\n<strong>Public IP Name:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 1))}<br>\n<strong>DNS Name:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 3))}<br>\n<strong>Attached Resource Type: </strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 4))}<br>\n<strong>Attached Resource Name:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 5))}<br>\n<strong>Region: </strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 6))}<br>\n<strong>Resource Group: </strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 7))}<br>\n<strong>Tags:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 9))}<br>\n<strong>Public IP Resource ID:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 0))}<br>\n<strong>Attached Resource ID:</strong> @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 8))}<br>\n<strong>Resource Owner: </strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 10))}@{parameters('companyDomain')}<br>\n<br>\n<strong>Message</strong>: @{first(skip(first(variables('Rows')), 2))}<br>\n<br>\n<strong>Link to search results:</strong> @{triggerBody()?['LinkToSearchResults']}<br>\n<br>\nIf DDoS Rapid Response support is necessary, visit the <a href=\"https://docs.microsoft.com/en-us/azure/azure-portal/supportability/how-to-create-azure-support-request\">general support docs here</a> &nbsp;and the <a href=\"https://docs.microsoft.com/en-us/azure/ddos-protection/ddos-rapid-response\">DDoS Rapid Response instructions here</a> .<br>\n<br>\n<strong>Result of test</strong> against http://@{first(skip(first(variables('Rows')), 3))}<br>\n<strong>Status</strong>: @{outputs('HTTP_2')['statusCode']}<br>\n<strong>Headers</strong>: @{outputs('HTTP_2')['headers']}<br>\n<strong>Body</strong>: @{body('HTTP_2')}<br>\n</p>",
+                                    "Importance": "High",
+                                    "Subject": "Potential DDoS Attack",
+                                    "To": "@{parameters('securityTeamEmail')}; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 10))}@{parameters('companyDomain')}"
+                                },
                                 "host": {
                                     "connection": {
-                                        "name": "@parameters('$connections')['office365-1']['connectionId']"
+                                        "name": "@parameters('$connections')['office365_1']['connectionId']"
                                     }
                                 },
                                 "method": "post",
+                                "path": "/v2/Mail"
+                            }
+                        },
+                        "Send_an_email_(V2)_2": {
+                            "runAfter": {
+                                "HTTP_2": [
+                                    "Failed",
+                                    "TimedOut"
+                                ]
+                            },
+                            "type": "ApiConnection",
+                            "inputs": {
                                 "body": {
-                                    "To": "@parameters('securityTeamEmail')",
-                                    "Subject": "Pottential Atack DDoS",
-                                    "Body": "<p class=\"editor-paragraph\">\"&lt;p&gt;An ongoing DDoS mitigation event has been detected against the following resource:&lt;br&gt;\\n&lt;br&gt;\\n&lt;strong&gt;Target Public IP:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 2))}&lt;br&gt;\\n&lt;strong&gt;Public IP Name:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 1))}&lt;br&gt;\\n&lt;strong&gt;DNS Name:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 3))}&lt;br&gt;\\n&lt;strong&gt;Attached Resource Type: &lt;/strong&gt;@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 4))}&lt;br&gt;\\n&lt;strong&gt;Attached Resource Name:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 5))}&lt;br&gt;\\n&lt;strong&gt;Region: &lt;/strong&gt;@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 6))}&lt;br&gt;\\n&lt;strong&gt;Resource Group: &lt;/strong&gt;@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 7))}&lt;br&gt;\\n&lt;strong&gt;Tags:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 9))}&lt;br&gt;\\n&lt;strong&gt;Public IP Resource ID:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 0))}&lt;br&gt;\\n&lt;strong&gt;Attached Resource ID:&lt;/strong&gt; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 8))}&lt;br&gt;\\n&lt;strong&gt;Resource Owner: &lt;/strong&gt;@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 10))}@{parameters('companyDomain')}&lt;br&gt;\\n&lt;br&gt;\\n&lt;strong&gt;Message&lt;/strong&gt;: @{first(skip(first(variables('Rows')), 2))}&lt;br&gt;\\n&lt;br&gt;\\n&lt;strong&gt;Link to search results:&lt;/strong&gt; @{triggerBody()?['LinkToSearchResults']}&lt;br&gt;\\n&lt;br&gt;\\nIf DDoS Rapid Response support is necessary, visit the &lt;a href=\\\"https://docs.microsoft.com/en-us/azure/azure-portal/supportability/how-to-create-azure-support-request\\\"&gt;general support docs here&lt;/a&gt; &amp;nbsp;and the &lt;a href=\\\"https://docs.microsoft.com/en-us/azure/ddos-protection/ddos-rapid-response\\\"&gt;DDoS Rapid Response instructions here&lt;/a&gt; .&lt;br&gt;\\n&lt;br&gt;\\n&lt;strong&gt;Result of test&lt;/strong&gt; against http://@{first(skip(first(variables('Rows')), 3))}&lt;br&gt;\\n&lt;strong&gt;Status&lt;/strong&gt;: @{outputs('HTTP_2')['statusCode']}&lt;br&gt;\\n&lt;strong&gt;Headers&lt;/strong&gt;: @{outputs('HTTP_2')['headers']}&lt;br&gt;\\n&lt;strong&gt;Body&lt;/strong&gt;: @{body('HTTP_2')}&lt;br&gt;\\n&lt;/p&gt;\"</p>",
-                                    "Importance": "High"
+                                    "Body": "<p>An ongoing DDoS mitigation event has been detected against the following resource:<br>\n<strong><br>\nTarget Public IP: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 2))}</strong><strong><br>\nPublic IP Name: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 1))}</strong><strong><br>\nDNS Name: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 3))}</strong><strong><br>\nAttached Resource Type: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 4))}</strong><strong><br>\nAttached Resource Name: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 5))}</strong><strong><br>\nRegion: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 6))}</strong><strong><br>\nResource Group: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 7))}</strong><strong><br>\nTags: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 9))}</strong><strong><br>\nPublic IP Resource ID: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 0))}</strong><strong><br>\nAttached Resource ID: </strong><strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 8))}</strong><strong><br>\nResource Owner: </strong>@{first(skip(first(body('Parse_JSON')?['data']?['rows']), 10))}@{parameters('companyDomain')}<br>\n<br>\nMessage: </strong><strong>@{first(skip(first(variables('Rows')), 2))}</strong><strong><br>\n<br>\nLink to search results:</strong> @{triggerBody()?['LinkToSearchResults']}<br>\n<br>\nIf DDoS Rapid Response support is necessary, visit the <a href=\"https://docs.microsoft.com/en-us/azure/azure-portal/supportability/how-to-create-azure-support-request\">general support docs here </a>&nbsp;and the <a href=\"https://docs.microsoft.com/en-us/azure/ddos-protection/ddos-rapid-response\">DDoS Rapid Response instructions here.</a><br>\n<br>\n<strong>Result of test </strong>against http://@{first(skip(first(variables('Rows')), 3))} failed or timed out.</p>",
+                                    "Importance": "High",
+                                    "Subject": "Potential DDoS Attack",
+                                    "To": "@{parameters('securityTeamEmail')}; @{first(skip(first(body('Parse_JSON')?['data']?['rows']), 10))}@{parameters('companyDomain')}"
                                 },
+                                "host": {
+                                    "connection": {
+                                        "name": "@parameters('$connections')['office365_1']['connectionId']"
+                                    }
+                                },
+                                "method": "post",
                                 "path": "/v2/Mail"
                             }
                         }
@@ -511,21 +630,21 @@
                     "outputs": {}
                 },
                 "parameters": {
-                    "companyDomain": {
-                        "value": "pvjm"
-                    },
-                    "securityTeamEmail": {
-                        "value": "dfernandezm@pvjm.onmicrosoft.com"
-                    },
                     "$connections": {
                         "value": {
-                            "office365-1": {
-                                "id": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/providers/Microsoft.Web/locations/eastus/managedApis/office365",
-                                "connectionId": "[parameters('connections_office365_1_externalid')]",
-                                "connectionName": "office365-1"
+                            "office365": {
+                                "connectionId": "[resourceId('Microsoft.Web/connections', variables('Office365ConnectionName'))]",
+                                "connectionName": "[variables('Office365ConnectionName')]",
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/office365')]"
                             }
                         }
-                    }
+                    },
+                    "securityTeamEmail": {
+                        "value": "[parameters('securityTeamEmail')]"
+                      },
+                      "companyDomain": {
+                        "value": "[parameters('companyDomain')]"
+                      }
                 }
             }
         }

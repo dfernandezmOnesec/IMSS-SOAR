@@ -2,31 +2,71 @@
     "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "workflows_BlockIPAzureWAF_2_name": {
-            "defaultValue": "BlockIPAzureWAF-2",
-            "type": "String"
+        "PlaybookName": {
+            "defaultValue": "Block-IPAzureWAF",
+            "type": "string",
+            "metadata": {
+                "description": "Name of the playbook."
+            }
         },
-        "ApplicationGatewayWebApplicationFirewallPolicies_AppGWIMSS_externalid": {
-            "defaultValue": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/resourceGroups/SentinelIMSSDemo/providers/Microsoft.Network/ApplicationGatewayWebApplicationFirewallPolicies/AppGWIMSS",
-            "type": "String"
+        "UserName": {
+            "defaultValue": "<username>@<domain>",
+            "type": "string",
+            "metadata": {
+                "description": "Azure AD account to be used to create Logic App connections."
+            }
         },
-        "connections_azuresentinel_Block_IPAzureWAF_externalid": {
-            "defaultValue": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/resourceGroups/SentinelIMSSDemo/providers/Microsoft.Web/connections/azuresentinel-Block-IPAzureWAF",
-            "type": "String"
-        },
-        "connections_office365_1_externalid": {
-            "defaultValue": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/resourceGroups/SentinelIMSSDemo/providers/Microsoft.Web/connections/office365-1",
-            "type": "String"
+        "appgatewayID":{
+            "type":"string",
+            "defaultValue":"Null",
+            "metadata": {
+                "description": "Resource ID of the application gateway that has the WAF policy deployed with it"
+            }
         }
     },
-    "variables": {},
+    "variables": {
+        "AzureSentinelConnectionName": "[concat('azuresentinel-', parameters('PlaybookName'))]",
+        "AzureOffice365ConnectionName": "[concat('office365-', parameters('PlaybookName'))]"
+    },
     "resources": [
+        {
+            "type": "Microsoft.Web/connections",
+            "apiVersion": "2016-06-01",
+            "name": "[variables('AzureSentinelConnectionName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "displayName": "[parameters('UserName')]",
+                "customParameterValues": {
+                },
+                "api": {
+                    "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azuresentinel')]"
+                }
+            }
+        },
+        {
+           "type": "Microsoft.Web/connections",
+           "apiVersion": "2016-06-01",
+           "name": "[variables('AzureOffice365ConnectionName')]",
+           "location": "[resourceGroup().location]",
+           "properties": {
+               "displayName": "[variables('AzureOffice365ConnectionName')]",
+               "customParameterValues": {},
+               "api": {
+                   "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/office365')]"
+                   }
+           }
+       },
         {
             "type": "Microsoft.Logic/workflows",
             "apiVersion": "2017-07-01",
-            "name": "[parameters('workflows_BlockIPAzureWAF_2_name')]",
-            "location": "eastus",
+            "name": "[parameters('PlaybookName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Web/connections', variables('AzureSentinelConnectionName'))]"
+            ],
             "identity": {
+                "principalId": "",
+                "tenantId": "",
                 "type": "SystemAssigned"
             },
             "properties": {
@@ -115,7 +155,7 @@
                                     {
                                         "name": "ResourceID1",
                                         "type": "string",
-                                        "value": "[parameters('ApplicationGatewayWebApplicationFirewallPolicies_AppGWIMSS_externalid')]"
+                                        "value": "[parameters('appgatewayID')]"
                                     }
                                 ]
                             }
@@ -1523,15 +1563,15 @@
                     "$connections": {
                         "value": {
                             "azuresentinel": {
-                                "id": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/providers/Microsoft.Web/locations/eastus/managedApis/azuresentinel",
-                                "connectionId": "[parameters('connections_azuresentinel_Block_IPAzureWAF_externalid')]",
-                                "connectionName": "azuresentinel-Block-IPAzureWAF"
+                                "connectionId": "[resourceId('Microsoft.Web/connections', variables('AzureSentinelConnectionName'))]",
+                                "connectionName": "[variables('AzureSentinelConnectionName')]",
+                                "id": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/azuresentinel')]"
                             },
-                            "office365": {
-                                "id": "/subscriptions/acd754da-298f-423b-b31e-4973af1e1173/providers/Microsoft.Web/locations/eastus/managedApis/office365",
-                                "connectionId": "[parameters('connections_office365_1_externalid')]",
-                                "connectionName": "office365-1"
-                            }
+                        "office365":{
+                            "connectionId":"[resourceId('Microsoft.Web/connections', variables('AzureOffice365ConnectionName'))]",
+                            "connectionName":"[variables('AzureOffice365ConnectionName')]",
+                            "id":"[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/office365')]"
+                        }
                         }
                     }
                 }
